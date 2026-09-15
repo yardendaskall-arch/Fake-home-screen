@@ -71,6 +71,13 @@
             android:exported="false"
             android:theme="@style/Theme.Aether" />
 
+        <!-- Shown by the uncaught-exception handler in AetherApplication so a crash is readable on-device -->
+        <activity
+            android:name=".CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
+
         <!-- Notification-dot badges: reads notification presence only, never content -->
         <service
             android:name=".service.NotificationBadgeService"
