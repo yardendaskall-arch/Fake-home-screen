@@ -60,6 +60,20 @@ class HomeViewModel(private val app: AetherApplication) : ViewModel() {
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
+    // Every field below must stay ABOVE the init{} block: Kotlin runs property initializers and
+    // init{} blocks in textual declaration order, and init{} kicks off coroutines (via
+    // viewModelScope.launch, which runs synchronously up to its first real suspension point on
+    // Dispatchers.Main.immediate) that touch these fields — declaring init{} first previously
+    // caused a NullPointerException on _palette before its initializer had run.
+    private val _suggested = MutableStateFlow<List<String>>(emptyList())
+    val suggestedAppKeys: StateFlow<List<String>> = _suggested
+
+    private val _palette = MutableStateFlow<WallpaperPalette?>(null)
+    val wallpaperPalette: StateFlow<WallpaperPalette?> = _palette
+
+    private val _homePressedAgain = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val homePressedAgain: SharedFlow<Unit> = _homePressedAgain
+
     init {
         refreshWallpaperPalette()
         viewModelScope.launch {
@@ -79,15 +93,6 @@ class HomeViewModel(private val app: AetherApplication) : ViewModel() {
                 }
         }
     }
-
-    private val _suggested = MutableStateFlow<List<String>>(emptyList())
-    val suggestedAppKeys: StateFlow<List<String>> = _suggested
-
-    private val _palette = MutableStateFlow<WallpaperPalette?>(null)
-    val wallpaperPalette: StateFlow<WallpaperPalette?> = _palette
-
-    private val _homePressedAgain = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val homePressedAgain: SharedFlow<Unit> = _homePressedAgain
 
     /** Fired when the user presses Home while already Home, or presses Back: closes drawer/settings and snaps to page 0. */
     fun onHomePressedAgain() {
