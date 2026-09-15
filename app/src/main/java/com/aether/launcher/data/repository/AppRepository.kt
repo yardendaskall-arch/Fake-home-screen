@@ -37,12 +37,15 @@ class AppRepository(
 
     /** Emits the full app list once at collection start, then again after every install/uninstall/update/refresh. */
     fun observeApps(): Flow<List<AppInfo>> = callbackFlow {
+        fun triggerReload() {
+            launch { trySend(runCatchingLoad()) }
+        }
         val callback = object : LauncherApps.Callback() {
-            override fun onPackageAdded(packageName: String?, user: UserHandle?) { trySend(runCatchingLoad()) }
-            override fun onPackageRemoved(packageName: String?, user: UserHandle?) { trySend(runCatchingLoad()) }
-            override fun onPackageChanged(packageName: String?, user: UserHandle?) { trySend(runCatchingLoad()) }
-            override fun onPackagesAvailable(packageNames: Array<out String>?, user: UserHandle?, replacing: Boolean) { trySend(runCatchingLoad()) }
-            override fun onPackagesUnavailable(packageNames: Array<out String>?, user: UserHandle?, replacing: Boolean) { trySend(runCatchingLoad()) }
+            override fun onPackageAdded(packageName: String?, user: UserHandle?) = triggerReload()
+            override fun onPackageRemoved(packageName: String?, user: UserHandle?) = triggerReload()
+            override fun onPackageChanged(packageName: String?, user: UserHandle?) = triggerReload()
+            override fun onPackagesAvailable(packageNames: Array<out String>?, user: UserHandle?, replacing: Boolean) = triggerReload()
+            override fun onPackagesUnavailable(packageNames: Array<out String>?, user: UserHandle?, replacing: Boolean) = triggerReload()
         }
         launcherApps.registerCallback(callback)
         val job = launch {
@@ -51,7 +54,7 @@ class AppRepository(
         awaitClose { launcherApps.unregisterCallback(callback); job.cancel() }
     }.onStart { emit(loadAllApps()) }.distinctUntilChanged()
 
-    private fun runCatchingLoad(): List<AppInfo> = runCatching { loadAllApps() }.getOrDefault(emptyList())
+    private suspend fun runCatchingLoad(): List<AppInfo> = runCatching { loadAllApps() }.getOrDefault(emptyList())
 
     suspend fun loadAllApps(): List<AppInfo> = withContext(Dispatchers.IO) {
         val profiles = launcherApps.profiles.ifEmpty { listOf(Process.myUserHandle()) }
@@ -76,14 +79,14 @@ class AppRepository(
     }
 
     fun launchApp(appInfo: AppInfo, sourceBoundsProvider: () -> android.graphics.Rect?) {
-        val component = android.content.ComponentName(appInfo.packageName, appInfo.activityName)
+        val targetComponent = android.content.ComponentName(appInfo.packageName, appInfo.activityName)
         runCatching {
-            launcherApps.startMainActivity(component, appInfo.userHandle, sourceBoundsProvider(), null)
+            launcherApps.startMainActivity(targetComponent, appInfo.userHandle, sourceBoundsProvider(), null)
         }.onFailure {
             // Fallback for edge cases LauncherApps can't resolve (rare OEM launcher-restricted activities).
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
-                component = android.content.ComponentName(appInfo.packageName, appInfo.activityName)
+                component = targetComponent
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             runCatching { context.startActivity(intent) }

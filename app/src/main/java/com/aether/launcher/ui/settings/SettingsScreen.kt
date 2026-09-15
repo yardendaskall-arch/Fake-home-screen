@@ -176,7 +176,7 @@ private fun SectionHeader(title: String) {
         text = title,
         color = Color(0xFF8B8BFF),
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(horizontal = 20.dp, top = 24.dp, bottom = 6.dp),
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 6.dp),
     )
 }
 

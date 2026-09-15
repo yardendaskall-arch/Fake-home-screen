@@ -4,7 +4,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import com.aether.launcher.data.model.GestureAction
@@ -22,13 +21,13 @@ fun Modifier.aetherGestures(
 ): Modifier = this
     .pointerInput(gestureMap) {
         awaitEachGesture {
-            val down = awaitFirstDown()
+            var event = awaitPointerEvent()
+            val downId = event.changes.first().id
             var totalDrag = Offset.Zero
             var maxPointerCount = 1
-            var event = awaitPointerEvent()
             while (event.changes.any { it.pressed }) {
                 maxPointerCount = maxOf(maxPointerCount, event.changes.size)
-                val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.first()
+                val change = event.changes.firstOrNull { it.id == downId } ?: event.changes.first()
                 totalDrag += change.positionChange()
                 event = awaitPointerEvent()
             }
