@@ -36,13 +36,14 @@ fun HomeGrid(
     onAppLongPressRemove: (HomeItem) -> Unit,
     onMove: (HomeItem, col: Int, row: Int) -> Unit,
     onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var gridSizePx by remember { mutableStateOf(IntSize.Zero) }
     var draggingItem by remember { mutableStateOf<HomeItem?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(12.dp)
             .onSizeChanged { gridSizePx = it }

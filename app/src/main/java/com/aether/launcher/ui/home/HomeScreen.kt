@@ -10,14 +10,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aether.launcher.data.model.AppInfo
 import com.aether.launcher.data.model.HomeItem
+import com.aether.launcher.ui.components.AnimatedAuroraBackground
 import com.aether.launcher.ui.dock.Dock
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 private const val PAGE_COUNT = 5
 
@@ -34,49 +37,63 @@ fun HomeScreen(
     val pagerState = rememberPagerState(initialPage = 0) { PAGE_COUNT }
     val density = uiState.settings.gridDensity
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        AtAGlanceWidget(modifier = Modifier.padding(top = 48.dp, start = 24.dp, end = 24.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedAuroraBackground(modifier = Modifier.fillMaxSize())
 
-        Spacer(Modifier.height(8.dp))
+        Column(modifier = Modifier.fillMaxSize()) {
+            AtAGlanceWidget(modifier = Modifier.padding(top = 48.dp, start = 24.dp, end = 24.dp))
 
-        SmartSuggestionRow(
-            uiState = uiState,
-            suggestedAppKeys = suggestedAppKeys,
-            onAppClick = onAppClick,
-        )
+            Spacer(Modifier.height(8.dp))
 
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f),
-        ) { page ->
-            val itemsOnPage = remember(uiState.homeItems, page) {
-                uiState.homeItems.filter { it.page == page }
+            SmartSuggestionRow(
+                uiState = uiState,
+                suggestedAppKeys = suggestedAppKeys,
+                onAppClick = onAppClick,
+            )
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+            ) { page ->
+                val itemsOnPage = remember(uiState.homeItems, page) {
+                    uiState.homeItems.filter { it.page == page }
+                }
+                // Parallax + scale + fade driven by how far this page is from being centered,
+                // so swiping between pages feels like a real carousel instead of a flat slide.
+                val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                HomeGrid(
+                    columns = density.columns,
+                    rows = density.rows,
+                    items = itemsOnPage,
+                    appFor = uiState::appByKey,
+                    badgedPackages = uiState.badgedPackages,
+                    showLabels = uiState.settings.showLabels,
+                    onAppClick = onAppClick,
+                    onAppLongPressRemove = viewModel::removeHomeItem,
+                    onMove = { item, col, row -> viewModel.moveHomeItem(item, page, col, row) },
+                    onOpenSettings = onOpenSettings,
+                    modifier = Modifier.graphicsLayer {
+                        val fraction = abs(pageOffset).coerceIn(0f, 1f)
+                        alpha = 1f - fraction * 0.5f
+                        scaleX = 1f - fraction * 0.14f
+                        scaleY = 1f - fraction * 0.14f
+                        translationX = pageOffset * size.width * 0.12f
+                    },
+                )
             }
-            HomeGrid(
-                columns = density.columns,
-                rows = density.rows,
-                items = itemsOnPage,
+
+            PageIndicator(pagerState.pageCount, pagerState.currentPage, Modifier.align(Alignment.CenterHorizontally))
+
+            Dock(
+                dockItems = uiState.dockItems,
                 appFor = uiState::appByKey,
                 badgedPackages = uiState.badgedPackages,
-                showLabels = uiState.settings.showLabels,
                 onAppClick = onAppClick,
-                onAppLongPressRemove = viewModel::removeHomeItem,
-                onMove = { item, col, row -> viewModel.moveHomeItem(item, page, col, row) },
-                onOpenSettings = onOpenSettings,
+                onUnpin = viewModel::unpinFromDock,
+                onOpenDrawer = onOpenDrawer,
+                oneHandedMode = uiState.settings.oneHandedMode,
             )
         }
-
-        PageIndicator(pagerState.pageCount, pagerState.currentPage, Modifier.align(Alignment.CenterHorizontally))
-
-        Dock(
-            dockItems = uiState.dockItems,
-            appFor = uiState::appByKey,
-            badgedPackages = uiState.badgedPackages,
-            onAppClick = onAppClick,
-            onUnpin = viewModel::unpinFromDock,
-            onOpenDrawer = onOpenDrawer,
-            oneHandedMode = uiState.settings.oneHandedMode,
-        )
     }
 }
 
@@ -92,13 +109,16 @@ private fun AtAGlanceWidget(modifier: Modifier = Modifier) {
     }
     val timeFormat = remember { SimpleDateFormat("h:mm", Locale.getDefault()) }
     val dateFormat = remember { SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()) }
+    val gradientBrush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(androidx.compose.material3.MaterialTheme.colorScheme.primary, androidx.compose.material3.MaterialTheme.colorScheme.secondary, Color.White)
+    )
 
     Column(modifier = modifier) {
         Text(
             text = timeFormat.format(now.value),
-            color = Color.White,
-            fontSize = 56.sp,
-            fontWeight = FontWeight.Light,
+            style = androidx.compose.ui.text.TextStyle(brush = gradientBrush),
+            fontSize = 60.sp,
+            fontWeight = FontWeight.Bold,
         )
         Text(
             text = dateFormat.format(now.value),

@@ -1,15 +1,19 @@
 package com.aether.launcher.ui.dock
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.aether.launcher.data.model.AppInfo
@@ -28,11 +32,20 @@ fun Dock(
     onOpenDrawer: () -> Unit,
     oneHandedMode: Boolean,
 ) {
+    val shape = RoundedCornerShape(28.dp)
+    val glowBrush = Brush.linearGradient(
+        listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+            Color.White.copy(alpha = 0.15f),
+        )
+    )
     FrostedSurface(
-        shape = RoundedCornerShape(28.dp),
+        shape = shape,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = if (oneHandedMode) 28.dp else 16.dp),
+            .padding(horizontal = 16.dp, vertical = if (oneHandedMode) 28.dp else 16.dp)
+            .border(BorderStroke(1.dp, glowBrush), shape),
     ) {
         Row(
             modifier = Modifier
