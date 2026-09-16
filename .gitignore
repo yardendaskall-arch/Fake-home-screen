@@ -10,3 +10,10 @@
 local.properties
 /app/build/
 /app/release/
+
+# Debug signing key: kept off git deliberately, reconstructed by CI from a repo secret
+# (DEBUG_KEYSTORE_BASE64) — see .github/workflows/build.yml
+/keystore/
+
+# Locally-downloaded build artifacts, not source
+/dist/

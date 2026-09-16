@@ -16,6 +16,25 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        // A stable debug-only key so every CI build is signed identically and installs cleanly
+        // as an update over the previous one — GitHub Actions runners are ephemeral and would
+        // otherwise generate a fresh random debug key per run, which Android's installer rejects
+        // as a signature mismatch ("App not installed"). The keystore itself is never committed;
+        // CI decodes it from a repo secret into this same path before building (see build.yml).
+        // Falls back to AGP's own auto-generated debug key when the file isn't present, so local
+        // `./gradlew assembleDebug` still works before that keystore exists on a given machine.
+        val localKeystore = file("../keystore/aether-debug.keystore")
+        if (localKeystore.exists()) {
+            getByName("debug") {
+                storeFile = localKeystore
+                storePassword = "aetherdebug123"
+                keyAlias = "aetherdebug"
+                keyPassword = "aetherdebug123"
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
